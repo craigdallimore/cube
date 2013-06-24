@@ -1,0 +1,56 @@
+@import "_mixins";
+
+/* Cube
+---------------------------------------------------------------------------- */
+.cubeWrap {
+    @include perspective(500px);
+
+    margin: -50px 0 0 -50px;
+}
+
+.cube {
+    @include transform-style(preserve-3d);
+    @include transform( rotate3d(0, 0, 0, 30deg));
+    @include transition( all, 300ms, ease-in-out, 0ms );
+
+
+    height: 100px;
+    width: 100px;
+
+    & :nth-child(1) {
+        background: blue;
+        @include transform( translate(0, -50px) rotate3d(50, 0,  0, 90deg));
+    }
+    & :nth-child(2) {
+        background: yellow;
+        @include transform( translate(0, 50px) rotate3d(50, 0,  0, -90deg));
+    }
+    & :nth-child(3) {
+        background: green;
+        @include transform( translate(-50px, 0) rotate3d(0, 50,  0, 90deg));
+    }
+    & :nth-child(4) {
+        background: pink;
+        @include transform( translate(50px, 0) rotate3d(0, 50,  0, -90deg));
+    }
+    & :nth-child(5) {
+        background: brown;
+        @include transform( translate3d(0, 0, 50px));
+    }
+    & :nth-child(6) {
+        background: red;
+        @include transform( translate3d(0, 0, -50px));
+    }
+
+}
+
+
+.face {
+    @include backface-visibility(visible);
+    position: absolute;
+    opacity: 0.5;
+    height: 100px;
+    width: 100px;
+    background: $clr_cube;
+
+}
