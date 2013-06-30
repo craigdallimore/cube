@@ -29,6 +29,11 @@ html.no-js(lang='en')
         section#canvas
             block content
 
+
+        script(src='//cdnjs.cloudflare.com/ajax/libs/bacon.js/0.4.2/Bacon.min.js' )
+        script window.Bacon || document.write('<script src="static/js/libs/Bacon.min.js"><\/script>')
+
+
         script(src='static/dist/app.min.js')
 
 //- KAIZEN

@@ -12,7 +12,6 @@ module.exports = function(grunt) {
         concat: {
             css: {
                 src: [
-//                    '<%= dirs.css %>base/reset.css',
                     '<%= dirs.css %>base/common.css',
                     '<%= dirs.css %>base/typography.css',
                     '<%= dirs.css %>base/sprites.css',
@@ -22,6 +21,20 @@ module.exports = function(grunt) {
                 dest: '<%= dirs.dist %>app.concat.css'
             }
         },
+        /*
+        requirejs: {
+            compile: {
+                options: {
+                    name: 'App',
+                    baseUrl: 'static/js',
+                    optimize: 'uglify2',
+                    preserveLicenseComments: false,
+                    generateSourceMaps: true,
+                    out: 'static/dist/app.min.js'
+                }
+            }
+        },
+        */
         uglify: {
             dev: {
                 options: {
@@ -85,11 +98,13 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-cssmin');
+    //grunt.loadNpmTasks('grunt-contrib-requirejs');
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-compass');
     grunt.loadNpmTasks('grunt-contrib-jade');
 
     grunt.registerTask('dev', ['js', 'css']);
+    //grunt.registerTask('js', ['requirejs']);
     grunt.registerTask('js', ['uglify']);
     grunt.registerTask('css', ['concat:css', 'cssmin']);
     grunt.registerTask('sass', ['compass', 'css']);
