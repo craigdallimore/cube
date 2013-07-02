@@ -29,16 +29,39 @@
     }
 
     function getRotationStyle(vertical, horizontal, degrees) {
-        console.log('rc');
         return 'rotate3d(' + vertical + ', ' + horizontal  + ', 0, ' + degrees  + 'deg)';
     }
 
-    function randomSeek() {
-        console.log('lol random');
+    function getRandomRotationStyle() {
+        var vertical    = ( -1 + (Math.random() * 2) ).toFixed(1),
+            horizontal  = ( -1 + (Math.random() * 2) ).toFixed(1),
+            degrees     = Math.round(Math.random() * 70);
+        return getRotationStyle(vertical, horizontal, degrees);
     }
 
     function Transformable(el) {
         this.el = el;
+    }
+
+    function getRandomInterval() {
+        return Math.floor(Math.random() * 1400) + 800;
+    }
+
+    function worry(subscriber) {
+
+        var t;
+
+        function twitch() {
+            subscriber( new Bacon.Next(getRandomRotationStyle));
+            t = setTimeout(twitch, getRandomInterval());
+        }
+
+        twitch();
+
+        return function() {
+            if (t) clearTimeout(t);
+        }
+
     }
 
     Transformable.prototype.setTransformStyle = function(cssStyle) {
@@ -52,6 +75,10 @@
         mouseX          = mouseMove.map('.clientX'),
         mouseY          = mouseMove.map('.clientY'),
 
+        mouseEnter      = Bacon.fromEventTarget(body, 'mouseenter').map(true),
+        mouseLeave      = Bacon.fromEventTarget(body, 'mouseleave').map(false),
+        mousePresent    = mouseEnter.merge(mouseLeave).toProperty(true),
+
         windowResize    = Bacon.fromEventTarget(window, 'resize').debounceImmediate(50),
         bodyWidth       = windowResize.map(getWidth).toProperty(body.clientWidth),
         bodyHeight      = windowResize.map(getHeight).toProperty(body.clientHeight),
@@ -59,17 +86,27 @@
         mouseXPercent   = bodyWidth.sampledBy(mouseX, toPercentage),
         mouseYPercent   = bodyHeight.sampledBy(mouseY, toPercentage),
 
-        horizontal      = mouseXPercent.map(toHorizontal),
-        vertical        = mouseYPercent.map(toVertical),
-        degrees         = mouseXPercent.zip(mouseYPercent, toDegrees),
+        mouseDeg        = mouseXPercent.zip(mouseYPercent, toDegrees),
+        mouseV          = mouseYPercent.map(toVertical),
+        mouseH          = mouseXPercent.map(toHorizontal),
 
-        rotationStyle   = Bacon.combineWith(getRotationStyle, vertical, horizontal, degrees);
+        vertical        = new Bacon.Bus(),
+        horizontal      = new Bacon.Bus(),
+        degrees         = new Bacon.Bus(),
 
-        rotationStyle.assign(cube, 'setTransformStyle');
+        mouseAngle      = Bacon.combineWith(getRotationStyle, vertical, horizontal, degrees).changes(),
+        twitchAngle     = new Bacon.EventStream(worry).filter(mousePresent.not());
+
+        vertical.plug(mouseV);
+        horizontal.plug(mouseH);
+        degrees.plug(mouseDeg);
+
+
+        transformStyles = mouseAngle.merge(twitchAngle).toProperty(),
+        transformStyles.assign(cube, 'setTransformStyle');
+
 
     // TODO
-    // Random twitches / seeking behaviour
     // Animation where the shock of losing the mouse is shown
-    // Cancel twitches upon finding mouse
 
 } (Bacon));
