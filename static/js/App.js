@@ -10,7 +10,10 @@
     }
 
     Transformable.prototype.setTransformStyle = function(cssStyle) {
-        console.log(this);
+        this.el.style['-webkit-transform'] = cssStyle;
+        this.el.style['-moz-transform'] = cssStyle;
+        this.el.style['-ms-transform'] = cssStyle;
+        this.el.style['-o-transform'] = cssStyle;
         this.el.style.transform = cssStyle;
     };
 
@@ -118,8 +121,8 @@
         mouseX          = mouseMove.map('.clientX'),
         mouseY          = mouseMove.map('.clientY'),
 
-        mouseEnter      = Bacon.fromEventTarget(body, 'mouseenter').map(true),
-        mouseLeave      = Bacon.fromEventTarget(body, 'mouseleave').map(false),
+        mouseEnter      = Bacon.fromEventTarget(body, 'mouseover').map(true),
+        mouseLeave      = Bacon.fromEventTarget(body, 'mouseout').map(false),
         mousePresent    = mouseEnter.merge(mouseLeave).toProperty(true),
 
         windowResize    = Bacon.fromEventTarget(window, 'resize').debounceImmediate(50),

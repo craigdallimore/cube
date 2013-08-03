@@ -1,3 +1,4 @@
+@import "compass/reset";
 @import "_mixins";
 
 /* Globals
@@ -10,7 +11,10 @@ html, body {
     height: 100%;
 }
 body {
-    background: $clr_bg_body;
+    background-color: #f0f9ff;
+    @include filter-gradient(#f0f9ff, #d1d1d1, horizontal);
+    @include background-image(radial-gradient(center, ellipse cover, #f0f9ff 22%,#d1d1d1 100%));
+
 }
 
 .clearfix:after {

@@ -1,0 +1,33 @@
+@import "_mixins";
+
+/* Footer
+---------------------------------------------------------------------------- */
+
+footer {
+
+    width: 100%;
+    position: absolute;
+    bottom: 0;
+    padding: 2em;
+
+    p {
+        text-align: center;
+        color: #bbb;
+
+    }
+
+    a {
+        color: #aaa;
+    }
+
+    > a {
+        margin: 0 auto;
+        width: 14em;
+        padding: 10px;
+        display: block;
+        text-align: center;
+    }
+
+}
+
+
