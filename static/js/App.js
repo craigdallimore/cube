@@ -1,4 +1,22 @@
+/*global Bacon, console*/
+
+
 (function(Bacon) {
+
+    'use strict';
+
+    function Transformable(el) {
+        this.el = el;
+    }
+
+    Transformable.prototype.setTransformStyle = function(cssStyle) {
+        console.log(this);
+        this.el.style.transform = cssStyle;
+    };
+
+    function add(a, b) {
+        return parseInt(a, 10) + parseInt(b, 10);
+    }
 
     function getWidth(e) {
         return e.target.clientWidth;
@@ -28,49 +46,74 @@
         return hypotenuse < 70 ? Math.floor(hypotenuse) : 70;
     }
 
-    function getRotationStyle(vertical, horizontal, degrees) {
-        return 'rotate3d(' + vertical + ', ' + horizontal  + ', 0, ' + degrees  + 'deg)';
+    function getRotationStyle(v, h, d) {
+        return 'rotate3d(' + v + ', ' + h  + ', 0, ' + d  + 'deg)';
     }
 
-    function getRandomRotationStyle() {
-        var vertical    = ( -1 + (Math.random() * 2) ).toFixed(1),
-            horizontal  = ( -1 + (Math.random() * 2) ).toFixed(1),
-            degrees     = Math.round(Math.random() * 70);
-        return getRotationStyle(vertical, horizontal, degrees);
-    }
-
-    function Transformable(el) {
-        this.el = el;
+    function getRandomRotationValues() {
+        return {
+            vertical    : ( -1 + (Math.random() * 2) ).toFixed(1),
+            horizontal  : ( -1 + (Math.random() * 2) ).toFixed(1),
+            degrees     : Math.round(Math.random() * 70)
+        };
     }
 
     function getRandomInterval() {
         return Math.floor(Math.random() * 1400) + 800;
     }
 
-    function worry(subscriber) {
+    function randomAngle(subscriber) {
 
         var t;
 
         function twitch() {
-            subscriber( new Bacon.Next(getRandomRotationStyle));
+            subscriber( new Bacon.Next(getRandomRotationValues));
             t = setTimeout(twitch, getRandomInterval());
         }
 
         twitch();
 
         return function() {
-            if (t) clearTimeout(t);
+            if (t) { clearTimeout(t); }
+        };
+    }
+
+    function wobble(subscriber) {
+
+        var numOscillations = 10,
+            magnitude = 25,
+            t,
+            dir = -1;
+
+
+        function flick() {
+
+            magnitude *= 0.8;
+
+
+            dir = dir < 0 ? 1 : -1;     // Go back and forth
+            dir = dir * magnitude;
+
+            subscriber( new Bacon.Next(dir));
+
+            if (numOscillations > 0) {
+                numOscillations--;
+                t = setTimeout(flick, 120);
+            } else {
+                subscriber( new Bacon.End() );
+            }
         }
+
+        flick();
+
+        return function() {
+            if (t) { clearTimeout(t); }
+        };
 
     }
 
-    Transformable.prototype.setTransformStyle = function(cssStyle) {
-        this.el.style.transform = cssStyle;
-    };
-
     var body            = document.body,
         cube            = new Transformable(document.querySelector('.cube')),
-
         mouseMove       = Bacon.fromEventTarget(body, 'mousemove').debounceImmediate(50),
         mouseX          = mouseMove.map('.clientX'),
         mouseY          = mouseMove.map('.clientY'),
@@ -83,30 +126,56 @@
         bodyWidth       = windowResize.map(getWidth).toProperty(body.clientWidth),
         bodyHeight      = windowResize.map(getHeight).toProperty(body.clientHeight),
 
-        mouseXPercent   = bodyWidth.sampledBy(mouseX, toPercentage),
-        mouseYPercent   = bodyHeight.sampledBy(mouseY, toPercentage),
+        pointXPercent   = bodyWidth.sampledBy(mouseX, toPercentage),
+        pointYPercent   = bodyHeight.sampledBy(mouseY, toPercentage),
 
-        mouseDeg        = mouseXPercent.zip(mouseYPercent, toDegrees),
-        mouseV          = mouseYPercent.map(toVertical),
-        mouseH          = mouseXPercent.map(toHorizontal),
+        lineOfSightX    = new Bacon.Bus(),
+        lineOfSightY    = new Bacon.Bus(),
+        reactionBus     = new Bacon.Bus(),
 
-        vertical        = new Bacon.Bus(),
+        pointXWobble    = Bacon.combineWith(add, reactionBus, pointXPercent).changes(),
+
+        pointDeg        = lineOfSightX.zip(lineOfSightY, toDegrees),
+        pointV          = lineOfSightY.map(toVertical),
+        pointH          = lineOfSightX.map(toHorizontal),
+
         horizontal      = new Bacon.Bus(),
+        vertical        = new Bacon.Bus(),
         degrees         = new Bacon.Bus(),
 
-        mouseAngle      = Bacon.combineWith(getRotationStyle, vertical, horizontal, degrees).changes(),
-        twitchAngle     = new Bacon.EventStream(worry).filter(mousePresent.not());
+        wobbleStream = mouseLeave.flatMapLatest(function() {
+            return new Bacon.EventStream(wobble).scan(0, add);
+        }).concat( new Bacon.once(0)).filter(mousePresent.not()),
 
-        vertical.plug(mouseV);
-        horizontal.plug(mouseH);
-        degrees.plug(mouseDeg);
+        wobbling = reactionBus.toProperty().map(function(val) {
+            return val !== 0;
+        }),
 
+        twitchStream = new Bacon.EventStream(randomAngle)
+            .filter(mousePresent.not())
+            .filter(wobbling),
 
-        transformStyles = mouseAngle.merge(twitchAngle).toProperty(),
-        transformStyles.assign(cube, 'setTransformStyle');
+        cubeAngle       = Bacon.combineWith(getRotationStyle, vertical, horizontal, degrees);
 
+    mouseEnter.onValue(function() {
+        reactionBus.push(0);
+    });
 
-    // TODO
-    // Animation where the shock of losing the mouse is shown
+    horizontal.plug(pointH);
+    vertical.plug(pointV);
+    degrees.plug(pointDeg);
+
+    reactionBus.plug(wobbleStream);
+
+    lineOfSightX.plug(pointXWobble);
+    lineOfSightY.plug(pointYPercent);
+
+    twitchStream.onValue(function(twitch) {
+        horizontal.push(twitch.horizontal);
+        vertical.push(twitch.vertical);
+        degrees.push(twitch.degrees);
+    });
+
+    cubeAngle.assign(cube, 'setTransformStyle');
 
 } (Bacon));
